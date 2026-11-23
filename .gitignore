@@ -28,6 +28,7 @@ __pycache__/
 *.pfx
 .gh*
 /.demo-*/
+/.research/
 .music-*/
 /转换输出/
 
@@ -38,6 +39,8 @@ __pycache__/
 !/tests/test_converter.py
 !/tests/test_server.py
 !/tests/test_ncm_defaults.py
+!/tests/test_platform_defaults.py
+!/tests/test_vendor_readers.py
 !/tests/browser_smoke.py
 *.mp3
 *.flac

@@ -23,6 +23,7 @@ class ServerConfig:
     processing_timeout: float = 120
     download_timeout: float = 90
     enable_builtin_ncm: bool = True
+    enable_builtin_platforms: bool = True
 
     @classmethod
     def from_env(cls) -> ServerConfig:
@@ -39,6 +40,9 @@ class ServerConfig:
             value = os.environ.get(name, "").strip()
             return Path(value).expanduser() if value else None
 
+        builtin_platforms = os.environ.get("MUSIC_BUILTIN_PLATFORMS", "1").strip().lower()
+        if builtin_platforms not in {"1", "0", "true", "false"}:
+            raise ValueError("MUSIC_BUILTIN_PLATFORMS 只能是 1、0、true 或 false。")
         builtin_ncm = os.environ.get("MUSIC_BUILTIN_NCM", "1").strip().lower()
         if builtin_ncm not in {"1", "0", "true", "false"}:
             raise ValueError("MUSIC_BUILTIN_NCM 只能是 1、0、true 或 false。")
@@ -56,6 +60,7 @@ class ServerConfig:
             processing_timeout=number("MUSIC_PROCESSING_TIMEOUT", 120, 5, 600),
             download_timeout=number("MUSIC_DOWNLOAD_TIMEOUT", 90, 5, 300),
             enable_builtin_ncm=builtin_ncm in {"1", "true"},
+            enable_builtin_platforms=builtin_platforms in {"1", "true"},
         )
 
     def load_profile(self) -> platforms.Profile:
@@ -69,7 +74,9 @@ class ServerConfig:
                 raise ValueError("无法打开 MUSIC_SERVER_PROFILE 指定的本机文件。") from None
         if "master_key" in profile.get("qmc2", {}):
             raise ValueError("服务端共享配置不接受 qmc2.master_key；该字段只适用于对应的单曲。")
-        combined = {name: dict(values) for name, values in (default_profile() if self.enable_builtin_ncm else {}).items()}
+        combined = {name: dict(values) for name, values in (default_profile() if self.enable_builtin_platforms else {}).items()}
+        if not self.enable_builtin_ncm:
+            combined.pop("ncm", None)
         for family, fields in profile.items():
             combined.setdefault(family, {}).update(fields)
         return MappingProxyType({name: MappingProxyType(values) for name, values in combined.items()})

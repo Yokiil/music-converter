@@ -66,7 +66,7 @@ _FIELDS = {
     "ncm": {"core_key": (16,), "tag_key": (16,)},
     "qmc1": {"mask": (44, 128, 256)},
     "qmc2": {"core_key": (8,), "master_key": (128, 256, 512), "garble_keys": (16,)},
-    "kgm": {"table1": (272,), "table2": (272,), "tablev2": (272,), "vpr_key": (17,)},
+    "kgm": {"table1": (272,), "table2": (272,), "tablev2": (272,), "vpr_key": (17,), "slot_key": (4,)},
     "kwm": {"core_key": (32,)},
 }
 
@@ -173,7 +173,7 @@ def _qmc_footer(stream: BinaryIO, size: int) -> str:
             raise _invalid("QMC 文件尾长度无效。")
         return mark.decode("ascii")
     length = int.from_bytes(mark, "little")
-    if 32 <= length <= min(MAX_QMC_FOOTER, size - 5) and length % 4 == 0:
+    if 32 <= length <= min(MAX_QMC_FOOTER, size - 5):
         return "长度文件尾"
     return ""
 
@@ -185,8 +185,39 @@ def _tagged_qmc(stream: BinaryIO, size: int) -> bool:
     return stream.read(4) in (b"QTag", b"STag")
 
 
+def _qmc_candidate(stream: BinaryIO, size: int, profile: Profile) -> str:
+    """Only bounded, structurally plausible candidates; final audio is still validated."""
+    if size < 16:
+        return ""
+    stream.seek(-8, 2)
+    ending = stream.read(8)
+    if ending in (b"musicex\x00",) or ending[-4:] in (b"QTag", b"STag"):
+        return "qmc2"
+    length = int.from_bytes(ending[-4:], "little")
+    if 32 <= length <= min(MAX_QMC_FOOTER, size - 5):
+        stream.seek(-(length + 4), 2)
+        key_data = stream.read(length).rstrip(b"\x00")
+        if len(key_data) % 4 == 0 and re.fullmatch(rb"[A-Za-z0-9+/]+={0,2}", key_data):
+            return "qmc2"
+    mask = profile.get("qmc1", {}).get("mask")
+    if mask is not None:
+        try:
+            from .mask_reader import audio_prefix
+            head_reader = _backend().QMCv1.new(mask=mask)
+            with head_reader:
+                stream.seek(0)
+                head_reader.write(stream.read(64), nocryptlayer=True)
+                head_reader.seek(0)
+                if audio_prefix(head_reader.read()):
+                    return "qmc1"
+        except (AdapterError, ValueError, TypeError):
+            pass
+    return ""
+
+
 def _open_spec(stream: BinaryIO, path: Path, head: bytes, size: int, profile: Profile):
     family = exact_family(head)
+    candidate = _qmc_candidate(stream, size, profile) if not family else ""
     ext = path.suffix.lower()
     label = _HEADER_LABELS.get(family, _HINTS.get(ext, "平台封装"))
     requires_file_key = False
@@ -199,24 +230,39 @@ def _open_spec(stream: BinaryIO, path: Path, head: bytes, size: int, profile: Pr
         params = dict(profile.get("ncm", {}))
         required = ("core_key",)
     elif family in ("kgm", "vpr"):
-        if len(head) < 60 or not 60 <= int.from_bytes(head[16:20], "little") < size:
-            raise _invalid()
-        version = int.from_bytes(head[20:24], "little")
-        if version != 3:
-            raise AdapterError("unsupported", f"{label} 版本 {version} 不支持；目前仅支持 v3。")
-        label += " v3"
-        info = _backend().probeinfo_kgmvpr(stream)
         params = dict(profile.get("kgm", {}))
-        required = ("table1", "table2", "tablev2") + (("vpr_key",) if family == "vpr" else ())
-        if family != "vpr":
-            params.pop("vpr_key", None)
+        tables = ("table1", "table2", "tablev2")
+        if any(name in params for name in tables):
+            # Retain the legacy table reader for explicit, custom test/operator profiles.
+            if len(head) < 60 or not 60 <= int.from_bytes(head[16:20], "little") < size:
+                raise _invalid()
+            if int.from_bytes(head[20:24], "little") != 3:
+                raise AdapterError("unsupported", "显式三表读取器仅支持酷狗 type 3。")
+            info = _backend().probeinfo_kgmvpr(stream)
+            params.pop("slot_key", None)
+            required = tables + (("vpr_key",) if family == "vpr" else ())
+            if family != "vpr":
+                params.pop("vpr_key", None)
+            label += " v3 (显式参数)"
+        else:
+            from .vendor_readers import ReaderError, probe_kgm
+            if "slot_key" not in params:
+                raise AdapterError("profile", f"{label}：缺少服务器固定读取参数。", family=family, label=label)
+            try:
+                info = probe_kgm(stream, size, params["slot_key"])
+            except ReaderError as exc:
+                raise AdapterError(exc.code, str(exc), family=family, label=label) from exc
+            label = info.label
+            required = ("slot_key",)
     elif family == "kwm":
-        if size <= 1024:
-            raise _invalid()
-        info = _backend().probeinfo_kwm(stream)
+        from .mask_reader import probe_kwm
+        info = probe_kwm(stream, size)
         params = dict(profile.get("kwm", {}))
         required = ("core_key",)
-    elif ext in QMC1_EXTS | QMC2_EXTS or _tagged_qmc(stream, size):
+    elif ext in QMC1_EXTS | QMC2_EXTS or candidate:
+        stream.seek(max(0, size - 8))
+        if stream.read(8) == b"musicex\x00":
+            raise AdapterError("unsupported", "QQ musicex 新版封装暂不支持。", family="qmc2", label="QQ · musicex")
         footer = _qmc_footer(stream, size)
         if footer:
             backend = _backend()
@@ -236,10 +282,10 @@ def _open_spec(stream: BinaryIO, path: Path, head: bytes, size: int, profile: Pr
             elif footer != "长度文件尾":
                 raise _invalid("QMC v2 文件尾解析失败。")
         if not family:
-            if ext not in QMC1_EXTS:
+            if ext not in QMC1_EXTS and candidate != "qmc1":
                 raise AdapterError("unsupported", "没有识别到受支持的 QMC v2 文件尾；此版本暂不支持。")
             family, label = "qmc1", "QQ · QMC v1 候选"
-            info = _backend().probeinfo_qmcv1(stream)
+            info = _backend().probeinfo_qmcv1(stream, skip_qmcv1_probe=candidate == "qmc1")
             params = dict(profile.get(family, {}))
             required = ("mask",)
     else:
@@ -255,16 +301,18 @@ def _open_spec(stream: BinaryIO, path: Path, head: bytes, size: int, profile: Pr
     return family, label, info, params
 
 
-def inspect(path: Path, head: bytes, size: int, profile: Profile = EMPTY_PROFILE) -> WrappedInfo | None:
+def inspect(path: Path, head: bytes, size: int, profile: Profile = EMPTY_PROFILE,
+            *, structural_only: bool = False) -> WrappedInfo | None:
     """只解析文件结构，不宣称已验证密钥或音频内容。"""
     exact = exact_family(head)
     ext = path.suffix.lower()
     label = _HEADER_LABELS.get(exact, _HINTS.get(ext, "平台封装"))
     try:
         with path.open("rb") as reader:
-            if not exact and _tagged_qmc(reader, size):
-                exact, label = "qmc2", "QQ · QMC v2"
-            if not exact and ext not in PLATFORM_EXTS:
+            candidate = _qmc_candidate(reader, size, profile) if not exact else ""
+            if candidate:
+                exact, label = candidate, "QQ · QMC"
+            if not exact and (structural_only or ext not in PLATFORM_EXTS):
                 return None
             family, label, _, _ = _open_spec(reader, path, head, size, profile)
     except AdapterError as exc:

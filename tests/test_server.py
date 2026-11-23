@@ -42,6 +42,7 @@ class ServerTestCase(unittest.TestCase):
             "temp_dir": self.jobs,
             "profile_path": None,
             "enable_builtin_ncm": False,  # This suite exercises explicit operator configuration.
+            "enable_builtin_platforms": False,
             "max_upload_bytes": 1024 * 1024,
             "max_output_bytes": 1024 * 1024,
             "concurrency": 1,

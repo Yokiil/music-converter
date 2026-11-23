@@ -258,6 +258,8 @@ def create_app(config: ServerConfig | None = None) -> FastAPI:
             info = await work(request, lambda _stop: probe.diagnose(path, profile), 20)
         status = state(info)
         message = "已识别平台封装；实际导出时会验证音频和配置是否匹配。" if status == "ready" and info.wrapped else DETAILS[status]
+        if status == "unsupported_format" and info.wrapped and info.adapter:
+            message = info.note[:240]
         return JSONResponse({"state": status, "adapter": info.adapter or None, "container": info.container,
                              "codec": info.codec or None, "duration_seconds": info.duration or None,
                              "wrapped": info.wrapped, "can_convert": status == "ready", "size_bytes": info.size,

@@ -199,11 +199,12 @@ def diagnose(path: str | Path, profile: platforms.Profile = platforms.EMPTY_PROF
         info.verdict, info.note = VERDICT_BROKEN, f"读不到文件：{exc}"
         return info
 
-    if not (detect_wrapped and platforms.exact_family(head)):
+    wrapped = platforms.inspect(path, head, info.size, profile, structural_only=True) if detect_wrapped else None
+    if wrapped is None:
         _probe(info)
         if info.verdict in (VERDICT_OK, VERDICT_NOT_AUDIO) or not detect_wrapped:
             return info
-    wrapped = platforms.inspect(path, head, info.size, profile) if detect_wrapped else None
+        wrapped = platforms.inspect(path, head, info.size, profile) if detect_wrapped else None
     if wrapped is not None:
         info.wrapped, info.container, info.note = True, wrapped.label, wrapped.note
         info.verdict = VERDICT_WRAPPED if wrapped.state == "ready" else wrapped.state

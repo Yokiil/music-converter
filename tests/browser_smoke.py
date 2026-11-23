@@ -1,7 +1,8 @@
-"""Optional real-browser checks. Start the local API with a matching demo profile first.
+"""Optional real-browser checks against the default local API.
 
 Requires Playwright and a local Chromium/Edge browser. Run from the project root:
   python -m tests.browser_smoke
+Five generated wrappers use public default parameters; no profile upload is used.
 Screenshots and downloads from this check never enter the source repository.
 """
 from __future__ import annotations
@@ -23,11 +24,30 @@ ROOT = Path(__file__).resolve().parents[1]
 BASE = os.environ.get("MUSIC_TEST_URL", "http://127.0.0.1:8787")
 
 
-async def main():
+async def _run_browser(directory: Path):
     if urllib.parse.urlparse(BASE).hostname not in {"localhost", "127.0.0.1"}:
         raise ValueError("Browser smoke tests must target a local server.")
-    demo = next(ROOT.glob(".demo-*/样本"))
-    candidates = [demo / name for name in ("网易云合成 FLAC.NCM", "QQ 合成 v1.qmcflac", "酷狗合成 v3.kgm", "酷我合成.kwm")]
+    from core import platforms
+    from tests.fixtures import write_audio
+    from tests.test_ncm_defaults import ncmdump_fixture
+    from tests.test_platform_defaults import QMC_MASK, QMC_CORE, QMC_GARBLE, independent_kwm
+    from tests.test_vendor_readers import fixture as kgm_fixture
+
+    lib = platforms._backend()
+    tone, _, cover = write_audio(directory)
+    audio = tone.read_bytes()
+    candidates = [directory / name for name in ("网易云合成 FLAC.NCM", "QQ 合成 v1.qmcflac",
+                                               "酷狗合成 v3.kgm", "酷我合成.kwm", "QQ 合成 v2.mflac0")]
+    candidates[0].write_bytes(ncmdump_fixture(audio, cover.read_bytes(), "flac"))
+    with lib.QMCv1.new(mask=QMC_MASK) as encoder:
+        encoder.write(audio)
+        encoder.save(candidates[1])
+    candidates[2].write_bytes(kgm_fixture(audio, kind=3))
+    candidates[3].write_bytes(independent_kwm(audio, bytes.fromhex("7856341240302010"), 32, "flac"))
+    with lib.QMCv2.new("rc4") as encoder:
+        encoder.write(audio)
+        encoder.save(core_key=QMC_CORE, garble_keys=QMC_GARBLE, filething=candidates[4])
+    total = len(candidates)
     errors = []
     shots = ROOT / "tests"
     async with async_playwright() as playwright:
@@ -46,26 +66,26 @@ async def main():
             assert await page.locator("#help-dialog").is_visible()
             await page.get_by_role("button", name="知道了").click()
             await page.locator("#file-input").set_input_files([str(p) for p in candidates])
-            await expect(page.locator("#ready-count")).to_have_text("4", timeout=20000)
-            assert await page.locator(".file-row").count() == 4
+            await expect(page.locator("#ready-count")).to_have_text(str(total), timeout=20000)
+            assert await page.locator(".file-row").count() == total
             # Duplicate input does not duplicate the pending queue.
             await page.locator("#file-input").set_input_files([str(candidates[0])])
-            assert await page.locator(".file-row").count() == 4
-            assert await page.locator(".recent-row").count() == 4
+            assert await page.locator(".file-row").count() == total
+            assert await page.locator(".recent-row").count() == total
             assert await page.locator("#total-size").inner_text() != "0 B"
             await page.locator("#file-search").fill("酷狗")
             await expect(page.locator(".file-row:visible")).to_have_count(1)
             await page.locator("#file-search").fill("不存在的音乐")
             await expect(page.locator("#search-empty")).to_be_visible()
             await page.locator("#file-search").fill("")
-            await expect(page.locator(".file-row:visible")).to_have_count(4)
+            await expect(page.locator(".file-row:visible")).to_have_count(total)
             await page.locator('.nav-item[href="#settings-section"]').click()
             await expect(page.locator('.nav-item[href="#settings-section"]')).to_have_class("nav-item active")
             await page.screenshot(path=str(shots / "web-ready.png"), full_page=True)
             await page.locator("#convert").click()
-            await expect(page.locator(".download-link")).to_have_count(4, timeout=30000)
+            await expect(page.locator(".download-link")).to_have_count(total, timeout=30000)
             assert await page.locator("#batch-status").inner_text() == "全部转换完成"
-            assert await page.locator("#batch-count").inner_text() == "4 / 4"
+            assert await page.locator("#batch-count").inner_text() == f"{total} / {total}"
             # Simulate a BFCache pagehide: completed download URLs must survive.
             await page.evaluate("window.dispatchEvent(new PageTransitionEvent('pagehide', { persisted: true }))")
             with tempfile.TemporaryDirectory() as directory:
@@ -85,7 +105,7 @@ async def main():
                 await archive.save_as(zpath)
                 with zipfile.ZipFile(zpath) as z:
                     assert z.testzip() is None
-                    assert len(z.namelist()) == 4
+                    assert len(z.namelist()) == total
                     assert all(n.endswith(".mp3") for n in z.namelist())
                     assert "网易云合成 FLAC.mp3" in z.namelist()
             await page.evaluate("() => window.scrollTo({ top: 0, behavior: 'instant' })")
@@ -101,7 +121,7 @@ async def main():
             assert await page.locator("#convert").is_disabled()
             await page.locator("#clear-files").click()
             # Actual drop handling, followed by stop/retry with a delayed network response.
-            raw = base64.b64encode((demo.parent / "合成音调.flac").read_bytes()).decode()
+            raw = base64.b64encode(tone.read_bytes()).decode()
             await page.evaluate("""(data) => {
                 const bytes = Uint8Array.from(atob(data), ch => ch.charCodeAt(0));
                 const transfer = new DataTransfer();
@@ -155,6 +175,11 @@ async def main():
             print("No JavaScript page errors. Screenshots: tests/web-{empty,ready,results,mobile}.png")
         finally:
             await browser.close()
+
+
+async def main():
+    with tempfile.TemporaryDirectory(prefix="music-browser-defaults-") as directory:
+        await _run_browser(Path(directory))
 
 
 if __name__ == "__main__":

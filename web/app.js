@@ -394,7 +394,7 @@ async function inspectQueue() {
         if (!isLive(item)) continue;
         item.info = info;
         item.state = info.can_convert ? 'ready' : 'blocked';
-        item.message = info.can_convert ? '' : messages[info.state] || '此类文件暂不可转换。';
+        item.message = info.can_convert ? '' : info.state === 'unsupported_format' && info.message ? info.message : messages[info.state] || '此类文件暂不可转换。';
       } catch (error) {
         if (!isLive(item)) continue;
         item.state = 'error';
