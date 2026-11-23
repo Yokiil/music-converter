@@ -212,7 +212,11 @@ class PlatformTests(unittest.TestCase):
 
     @unittest.skipUnless(os.environ.get("TEST_GUI"), "设置 TEST_GUI=1 在图形桌面跑 Tk 冒烟测试")
     def test_windows_gui(self):
+        import gc
         import app
+        # Tk owns thread-affine native resources. Collect widget cycles on the
+        # test runner's main thread before subsequent threaded HTTP tests.
+        self.addCleanup(gc.collect)
         with contextlib.ExitStack() as stack:
             directory = Path(stack.enter_context(tempfile.TemporaryDirectory()))
             stack.enter_context(patch.object(app.messagebox, "askokcancel", return_value=True))

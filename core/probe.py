@@ -59,6 +59,8 @@ class AudioInfo:
     note: str = ""
     wrapped: bool = False
     tags: dict[str, str] = field(default_factory=dict)
+    adapter: str = ""
+    requires_file_key: bool = False
 
     @property
     def name(self) -> str:
@@ -205,6 +207,7 @@ def diagnose(path: str | Path, profile: platforms.Profile = platforms.EMPTY_PROF
     if wrapped is not None:
         info.wrapped, info.container, info.note = True, wrapped.label, wrapped.note
         info.verdict = VERDICT_WRAPPED if wrapped.state == "ready" else wrapped.state
+        info.adapter, info.requires_file_key = wrapped.family, wrapped.requires_file_key
     elif info.verdict == VERDICT_UNKNOWN and (path.suffix.lower() in AUDIO_EXTS or head.startswith((b"ID3", b"fLaC", b"RIFF"))):
         info.verdict = VERDICT_BROKEN
     return info

@@ -61,6 +61,7 @@ class ConvertResult:
     message: str = ""
     copied: bool = False
     cancelled: bool = False
+    error_code: str = ""
 
 
 Progress = Callable[[float], None]
@@ -107,11 +108,12 @@ def needs_lossy_warning(info: probe.AudioInfo, fmt: str, bitrate: str | None = N
 def convert_to_directory(info: probe.AudioInfo, out_dir: Path, fmt: str,
                          bitrate: str | None = None, on_progress: Progress | None = None,
                          *, profile: platforms.Profile = platforms.EMPTY_PROFILE,
-                         cancel: Event | None = None) -> ConvertResult:
+                         cancel: Event | None = None, max_output_bytes: int | None = None,
+                         verify_copy: bool = False) -> ConvertResult:
     source = info.path.absolute()
 
-    def failed(message, *, cancelled=False) -> ConvertResult:
-        return ConvertResult(False, source, message=message, cancelled=cancelled)
+    def failed(message, *, cancelled=False, code="conversion_failed") -> ConvertResult:
+        return ConvertResult(False, source, message=message, cancelled=cancelled, error_code=code)
 
     if cancel is not None and cancel.is_set():
         return failed("已停止。", cancelled=True)
@@ -151,7 +153,7 @@ def convert_to_directory(info: probe.AudioInfo, out_dir: Path, fmt: str,
             common = [ffmpeg, "-nostdin", "-hide_banner", "-loglevel", "error", "-xerror", "-nostats"]
             source_args = [*MEDIA_INPUT, "-err_detect", "explode", "-i", str(media.path)]
             # 防止仅有看似有效文件头的错误输出通过 stream copy。
-            if copied and extracted is not None:
+            if copied and (extracted is not None or verify_copy):
                 check = run_ffmpeg(common + source_args + ["-map", f"0:{media.audio_index}", "-f", "null", "-"],
                                    work, cancel=cancel, timeout=600)
                 if check.code:
@@ -180,9 +182,16 @@ def convert_to_directory(info: probe.AudioInfo, out_dir: Path, fmt: str,
                     cmd += ["-ac", "2"]
             if target.codec == "mp3":
                 cmd += ["-id3v2_version", "3"]
+            output_limit = (temp_output, max_output_bytes) if max_output_bytes is not None else None
+            if output_limit is not None:
+                # 超出对外限额即丢弃。额外设置 FFmpeg 硬上限，限制轮询之间的磁盘占用。
+                cmd += ["-fs", str(max_output_bytes + 65536)]
             cmd += ["-f", target.muxer, str(temp_output)]
             progress = (lambda fraction: on_progress(progress_from + (1 - progress_from) * fraction)) if on_progress else None
-            result = run_ffmpeg(cmd, work, cancel=cancel, timeout=1800, duration=media.duration, on_progress=progress)
+            result = run_ffmpeg(cmd, work, cancel=cancel, timeout=1800, duration=media.duration,
+                                on_progress=progress, output_limit=output_limit)
+            if result.output_too_large:
+                return failed("输出超过允许的大小。", code="output_too_large")
             if result.code != 0:
                 return failed(_problem(result), cancelled=result.cancelled)
             verified = probe.diagnose(temp_output, detect_wrapped=False)

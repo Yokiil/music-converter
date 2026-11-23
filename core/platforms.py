@@ -31,11 +31,17 @@ MAX_PROFILE_SIZE = 64 * 1024
 MAX_COVER_SIZE = 16 * 1024 ** 2
 MAX_QMC_FOOTER = 4096
 CHUNK = 256 * 1024
+_HEADER_LABELS = {"ncm": "网易云 · NCM", "kgm": "酷狗 · KGM", "vpr": "酷狗 · VPR", "kwm": "酷我 · KWM"}
+
 
 class AdapterError(Exception):
-    def __init__(self, code: str, message: str):
+    def __init__(self, code: str, message: str, *, family: str = "", label: str = "",
+                 requires_file_key: bool = False):
         super().__init__(message)
         self.code = code
+        self.family = family
+        self.label = label
+        self.requires_file_key = requires_file_key
 
 
 @dataclass(frozen=True)
@@ -44,6 +50,7 @@ class WrappedInfo:
     label: str
     state: str
     note: str
+    requires_file_key: bool = False
 
 
 @dataclass(frozen=True)
@@ -171,11 +178,18 @@ def _qmc_footer(stream: BinaryIO, size: int) -> str:
     return ""
 
 
+def _tagged_qmc(stream: BinaryIO, size: int) -> bool:
+    if size < 9:
+        return False
+    stream.seek(-4, 2)
+    return stream.read(4) in (b"QTag", b"STag")
+
+
 def _open_spec(stream: BinaryIO, path: Path, head: bytes, size: int, profile: Profile):
     family = exact_family(head)
     ext = path.suffix.lower()
-    label = {"ncm": "网易云 · NCM", "kgm": "酷狗 · KGM", "vpr": "酷狗 · VPR",
-             "kwm": "酷我 · KWM"}.get(family, _HINTS.get(ext, "平台封装"))
+    label = _HEADER_LABELS.get(family, _HINTS.get(ext, "平台封装"))
+    requires_file_key = False
     if size > MAX_WRAPPED_SIZE:
         raise AdapterError("unsupported", "平台封装首版每个文件最大 256 MiB。")
     if family == "ncm":
@@ -202,7 +216,7 @@ def _open_spec(stream: BinaryIO, path: Path, head: bytes, size: int, profile: Pr
         info = _backend().probeinfo_kwm(stream)
         params = dict(profile.get("kwm", {}))
         required = ("core_key",)
-    elif ext in QMC1_EXTS | QMC2_EXTS:
+    elif ext in QMC1_EXTS | QMC2_EXTS or _tagged_qmc(stream, size):
         footer = _qmc_footer(stream, size)
         if footer:
             backend = _backend()
@@ -216,7 +230,8 @@ def _open_spec(stream: BinaryIO, path: Path, head: bytes, size: int, profile: Pr
                     and (info.master_key_encrypted or footer == "STag")):
                 family, label = "qmc2", f"QQ · QMC v2 ({footer})"
                 params = dict(profile.get(family, {}))
-                required = (("master_key",) if footer == "STag" or "master_key" in params
+                requires_file_key = footer == "STag"
+                required = (("master_key",) if requires_file_key or "master_key" in params
                             else info.opener_kwargs_required)
             elif footer != "长度文件尾":
                 raise _invalid("QMC v2 文件尾解析失败。")
@@ -235,22 +250,25 @@ def _open_spec(stream: BinaryIO, path: Path, head: bytes, size: int, profile: Pr
     absent = [field for field in required if field not in params]
     if absent:
         section = "kgm" if family == "vpr" else family
-        raise AdapterError("profile", f"{label}：缺少 " + "、".join(f"{section}.{k}" for k in absent) + "。")
+        raise AdapterError("profile", f"{label}：缺少 " + "、".join(f"{section}.{k}" for k in absent) + "。",
+                           family=family, label=label, requires_file_key=requires_file_key)
     return family, label, info, params
 
 
 def inspect(path: Path, head: bytes, size: int, profile: Profile = EMPTY_PROFILE) -> WrappedInfo | None:
     """只解析文件结构，不宣称已验证密钥或音频内容。"""
     exact = exact_family(head)
-    if not exact and path.suffix.lower() not in PLATFORM_EXTS:
-        return None
-    label = {"ncm": "网易云 · NCM", "kgm": "酷狗 · KGM", "vpr": "酷狗 · VPR",
-             "kwm": "酷我 · KWM"}.get(exact, _HINTS.get(path.suffix.lower(), "平台封装"))
+    ext = path.suffix.lower()
+    label = _HEADER_LABELS.get(exact, _HINTS.get(ext, "平台封装"))
     try:
         with path.open("rb") as reader:
+            if not exact and _tagged_qmc(reader, size):
+                exact, label = "qmc2", "QQ · QMC v2"
+            if not exact and ext not in PLATFORM_EXTS:
+                return None
             family, label, _, _ = _open_spec(reader, path, head, size, profile)
     except AdapterError as exc:
-        return WrappedInfo(exact, label, exc.code, str(exc))
+        return WrappedInfo(exc.family or exact, exc.label or label, exc.code, str(exc), exc.requires_file_key)
     except (OSError, TypeError, ValueError, IndexError):
         return WrappedInfo(exact, label, "broken", "读取文件封装失败。")
     return WrappedInfo(family, label, "ready", "参数齐全；导出时校验原始音频。")

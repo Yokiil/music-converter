@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f7f8fc">
+  <meta name="description" content="上传本地音乐，自动识别格式，批量转换为 MP3、FLAC、M4A 等常用音频。">
+  <title>声转 · 音乐格式转换</title>
+  <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+  <link rel="stylesheet" href="/assets/styles.css">
+  <script type="module" src="/assets/app.js"></script>
+</head>
+<body>
+  <svg class="icon-definitions" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <symbol id="i-wave" viewBox="0 0 24 24"><path d="M4 10v4m4-8v12m4-15v18m4-15v12m4-8v4"/></symbol>
+    <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16V4m-4 4 4-4 4 4M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M4 12h15m-6-6 6 6-6 6"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12m-4-4 4 4 4-4M4 16v4h16v-4"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
+    <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 7v5h-5M4 17v-5h5m10-3a8 8 0 0 0-14-3M5 15a8 8 0 0 0 14 3"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6m0-10v.2"/></symbol>
+    <symbol id="i-note" viewBox="0 0 24 24"><path d="M9 18V5l11-2v13M9 9l11-2"/><ellipse cx="6" cy="18" rx="3" ry="3"/><ellipse cx="17" cy="16" rx="3" ry="3"/></symbol>
+    <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 7h6l2 2h10l-3 11H2L3 7Zm0 0V4h6l2 3h9v2"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24"><path d="m12 3 8 3v6c0 4-4 7-8 9-4-2-8-5-8-9V6l8-3Z"/><path d="m8 12 3 3 5-6"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  </svg>
+
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="/" aria-label="声转首页"><span class="brand-mark"><svg class="icon"><use href="#i-wave"/></svg></span><span>声转<span class="brand-en">SOUND SHIFT</span></span></a>
+      <nav aria-label="主导航"><button class="text-button" id="formats-help">支持的格式 <svg class="icon small"><use href="#i-info"/></svg></button><span class="service-status" id="service-status" role="status"><span class="status-dot"></span><span id="service-label">连接服务中</span></span></nav>
+    </div>
+  </header>
+
+  <main class="page-shell">
+    <section class="intro" aria-labelledby="page-title">
+      <div class="eyebrow"><span></span>音乐格式转换</div>
+      <h1 id="page-title">你的音乐，<span>自由换个格式。</span></h1>
+      <p>上传本地音乐，自动识别文件，转换后即可下载。</p>
+      <div class="intro-features"><span><svg class="icon"><use href="#i-check"/></svg>自动识别格式</span><span><svg class="icon"><use href="#i-check"/></svg>支持批量转换</span><span><svg class="icon"><use href="#i-check"/></svg>尽量保留封面与标签</span></div>
+    </section>
+
+    <div class="connection-banner" id="connection-banner" hidden role="alert"><svg class="icon"><use href="#i-info"/></svg><span id="connection-message">暂时无法连接转换服务。</span><button id="reconnect" class="text-button">重新连接</button></div>
+
+    <div class="workspace">
+      <section class="files-panel panel" aria-labelledby="files-heading">
+        <div class="panel-heading"><h2 id="files-heading"><span class="step-number">01</span>添加音乐</h2><span class="small-muted" id="upload-limit">正在获取上传限制…</span></div>
+        <div class="dropzone" id="dropzone">
+          <div class="upload-art" aria-hidden="true"><div class="record"><div></div></div><span class="upload-tile"><svg class="icon"><use href="#i-upload"/></svg></span></div>
+          <h3>把音乐拖到这里</h3>
+          <p>也可以从电脑中选择，支持一次添加多个文件</p>
+          <button id="choose-files" class="button button-dark"><svg class="icon"><use href="#i-plus"/></svg>选择音乐文件</button>
+          <input type="file" id="file-input" multiple hidden>
+          <div class="file-types">MP3 <span>·</span> FLAC <span>·</span> M4A <span>·</span> NCM <span>·</span> QMC <span>·</span> 更多</div>
+        </div>
+        <div class="queue-heading"><h3>文件列表 <span class="counter" id="file-count">0</span></h3><button class="text-button muted" id="clear-files" disabled>清空列表</button></div>
+        <div id="empty-state" class="empty-state"><span class="empty-icon"><svg class="icon"><use href="#i-note"/></svg></span><div>还没有添加文件<p>添加后会自动识别，无需选择音乐平台</p></div></div>
+        <ul class="file-list" id="file-list" aria-label="待转换的音乐文件"></ul>
+        <div class="queue-footer" id="queue-footer" hidden><span id="queue-summary">等待添加文件</span><button class="text-button" id="download-all" disabled><svg class="icon small"><use href="#i-folder"/></svg><span>打包下载</span></button></div>
+        <div class="privacy-note"><svg class="icon"><use href="#i-shield"/></svg><p>文件将上传到当前转换服务。处理结束后清理服务器临时文件；原文件不会改变。</p></div>
+      </section>
+
+      <aside class="settings-panel panel" aria-labelledby="settings-heading">
+        <div class="panel-heading"><h2 id="settings-heading"><span class="step-number">02</span>转换设置</h2></div>
+        <fieldset class="format-fieldset"><legend>输出格式</legend><div class="format-grid" id="format-grid">
+          <label class="format-choice"><input type="radio" name="format" value="mp3" checked><span><strong>MP3</strong><small>通用兼容</small><svg class="icon"><use href="#i-check"/></svg></span></label>
+          <label class="format-choice"><input type="radio" name="format" value="flac"><span><strong>FLAC</strong><small>无损编码</small><svg class="icon"><use href="#i-check"/></svg></span></label>
+          <label class="format-choice"><input type="radio" name="format" value="m4a"><span><strong>M4A</strong><small>AAC 编码</small><svg class="icon"><use href="#i-check"/></svg></span></label>
+          <label class="format-choice"><input type="radio" name="format" value="wav"><span><strong>WAV</strong><small>未压缩音频</small><svg class="icon"><use href="#i-check"/></svg></span></label>
+          <label class="format-choice"><input type="radio" name="format" value="ogg"><span><strong>OGG</strong><small>Vorbis 编码</small><svg class="icon"><use href="#i-check"/></svg></span></label>
+          <label class="format-choice"><input type="radio" name="format" value="source"><span><strong>原始格式</strong><small>保留音频编码</small><svg class="icon"><use href="#i-check"/></svg></span></label>
+        </div></fieldset>
+        <div class="quality-setting"><label for="bitrate">音频码率 <span id="quality-hint">推荐自动</span></label><select id="bitrate"><option value="">自动 · 原样或默认码率</option></select><p id="format-description">MP3 适合手机、电脑与大多数音乐播放器。</p></div>
+        <div class="conversion-summary"><span>本次转换</span><div><strong id="ready-count">0</strong> 个文件 <span class="summary-arrow">→</span> <b id="target-format">MP3</b></div></div>
+        <button class="button button-primary convert-button" id="convert" disabled><span>开始转换</span><svg class="icon"><use href="#i-arrow"/></svg></button>
+        <button class="button button-stop" id="stop" hidden>停止本次转换</button>
+        <p class="button-caption" id="button-caption">先添加音乐文件，再开始转换</p>
+        <div class="batch-progress" id="batch-progress" hidden><div><span id="batch-status">处理中</span><span id="batch-count"></span></div><progress id="batch-meter" max="100" value="0" aria-label="整批文件完成进度"></progress></div>
+        <div class="quality-note"><svg class="icon"><use href="#i-info"/></svg><p id="quality-note">有损音频转成 FLAC 或 WAV，不会恢复已经损失的音质。</p></div>
+      </aside>
+    </div>
+
+    <section class="how-it-works" aria-label="使用步骤"><div><span>1</span><div><h3>添加文件</h3><p>拖入音乐，自动识别格式</p></div></div><svg class="icon how-arrow"><use href="#i-arrow"/></svg><div><span>2</span><div><h3>选择格式</h3><p>按设备和音质需要选择</p></div></div><svg class="icon how-arrow"><use href="#i-arrow"/></svg><div><span>3</span><div><h3>下载音乐</h3><p>转换完成，保存到本地</p></div></div></section>
+    <footer class="site-footer"><span class="footer-brand">声转 <span>/</span> 让文件格式少一点阻碍</span><span>仅处理你有权转换的音频文件</span></footer>
+  </main>
+  <div id="notice" class="toast" role="status" aria-live="polite" hidden></div>
+  <dialog id="help-dialog" aria-labelledby="help-title"><div class="dialog-heading"><h2 id="help-title">哪些文件可以转换？</h2><button class="icon-button" id="close-help" aria-label="关闭说明"><svg class="icon"><use href="#i-close"/></svg></button></div><div class="help-content"><h3>常见本地音频</h3><p>MP3、FLAC、WAV、M4A、AAC、Ogg、Opus、APE 等，可以自动识别并转换。</p><h3>部分音乐平台格式</h3><p>支持部分版本的 NCM、QMC、KGM v3、VPR v3 和 KWM。能否转换取决于文件版本与当前服务的支持情况，上传后会给出结果。</p><h3>需要知道的两件事</h3><p>改后缀不能改变音频格式。有损音频转为无损格式，也不能提升原来的音质。</p><p class="help-privacy">转换后的下载文件仅保留在当前页面，刷新或关闭页面后需要重新转换。只上传你有权处理的文件。</p></div><button class="button button-dark dialog-done" id="help-done">知道了</button></dialog>
+  <noscript><div class="noscript">请开启浏览器的 JavaScript，才能上传和转换音乐。</div></noscript>
+</body>
+</html>

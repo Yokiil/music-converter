@@ -4,7 +4,13 @@ Windows 本地音频工具：先辨认文件，再导出原编码或批量转成
 
 **普通音频可直接转换。平台封装必须提供适合该文件版本、且你获准使用的本地导出参数。** 仓库不附平台音频密钥、个人参数文件或歌曲。没有可用参数的会员缓存、未知或新版封装不会变成 MP3，也不会仅改后缀来充当成功。
 
-## 开始使用
+## 网页版
+
+已提供中文网页与配套 HTTP API。运行 [Start-Backend.bat](./Start-Backend.bat) 后打开 [本机音乐转换网页](http://127.0.0.1:8787/)，即可拖入文件自动识别、选择格式、顺序批量转换并下载，多个结果可以打包成 ZIP。网页适配电脑和手机宽度，不需要另装前端开发工具。
+
+服务器启动时读取一次固定配置，客户不需要填写平台或密钥。安装、配置、接口契约和浏览器测试方法见 [后端接入](./后端接入.md)。
+
+## 桌面版开始使用
 
 1. 安装带 Tkinter 的 Python 3.10 或更新版本，以及 [FFmpeg](https://ffmpeg.org/download.html) 和 ffprobe。在 Windows 上可从 [Gyan FFmpeg Builds](https://www.gyan.dev/ffmpeg/builds/) 获取 essentials 构建；将 `ffmpeg.exe`、`ffprobe.exe` 放进项目的 `bin` 目录，或加入 `PATH`。
 2. 双击 [Start.bat](./Start.bat)，或者运行 `python app.py`。应用已在这台电脑配置好时，可直接启动。
@@ -46,7 +52,7 @@ python -m pip install --require-hashes --target .deps -r requirements-adapters.t
 ```powershell
 $env:REQUIRE_ADAPTERS = '1'
 $env:TEST_GUI = '1'  # 有 Windows 桌面时启用窗口测试；无界面环境可不设置
-python -m unittest discover -s tests -v
+python -m unittest -v tests.test_converter
 ```
 
 想自己在窗口试用，可先生成可拖入的演示文件：

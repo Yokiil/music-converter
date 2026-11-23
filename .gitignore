@@ -36,6 +36,8 @@ __pycache__/
 !/tests/__init__.py
 !/tests/fixtures.py
 !/tests/test_converter.py
+!/tests/test_server.py
+!/tests/browser_smoke.py
 *.mp3
 *.flac
 *.wav

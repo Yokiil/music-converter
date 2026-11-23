@@ -22,11 +22,20 @@ class ProcessResult:
     error: str = ""
     cancelled: bool = False
     timed_out: bool = False
+    output_too_large: bool = False
 
 
 def run_ffmpeg(cmd: list[str], work: Path, *, timeout: float, cancel: Event | None = None,
-               on_progress: Callable[[float], None] | None = None,
-               duration: float = 0) -> ProcessResult:
+               on_progress: Callable[[float], None] | None = None, duration: float = 0,
+               output_limit: tuple[Path, int] | None = None) -> ProcessResult:
+    def exceeds_limit() -> bool:
+        if output_limit is None:
+            return False
+        path, limit = output_limit
+        try:
+            return path.stat().st_size > limit
+        except FileNotFoundError:
+            return False
     if cancel is not None and cancel.is_set():
         return ProcessResult(-1, cancelled=True)
     progress_path = work / "ffmpeg-progress.txt"
@@ -40,6 +49,8 @@ def run_ffmpeg(cmd: list[str], work: Path, *, timeout: float, cancel: Event | No
                         return ProcessResult(-1, cancelled=True)
                     if time.monotonic() >= end:
                         return ProcessResult(-1, timed_out=True)
+                    if exceeds_limit():
+                        return ProcessResult(-1, output_too_large=True)
                     if on_progress is not None and duration > 0:
                         while True:
                             start = progress_in.tell()
@@ -57,6 +68,8 @@ def run_ffmpeg(cmd: list[str], work: Path, *, timeout: float, cancel: Event | No
                         code = process.wait(timeout=0.12)
                     except subprocess.TimeoutExpired:
                         continue
+                    if exceeds_limit():
+                        return ProcessResult(-1, output_too_large=True)
                     errors.seek(max(0, errors.seek(0, 2) - 4096))
                     detail = errors.read().decode("utf-8", "replace").strip()
                     return ProcessResult(code, detail)
