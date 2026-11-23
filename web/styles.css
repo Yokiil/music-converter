@@ -33,7 +33,7 @@ button, a, select, input { outline-offset: 4px; }
 .brand-mark .icon { width: 29px; height: 29px; stroke-width: 2; }
 .brand-en { display: block; font-size: 8px; font-weight: 500; color: #aaa5c5; letter-spacing: 1.1px; margin-top: 5px; }
 .nav-caption { color: #5f657e; font-size: 9px; letter-spacing: 2px; margin: 42px 16px 12px; }
-.side-nav { display: flex; flex-direction: column; gap: 7px; }
+.side-nav { display: flex; flex-direction: column; gap: 7px; margin-top: 34px; }
 .nav-item { display: flex; align-items: center; gap: 15px; height: 46px; padding: 0 16px; border: 1px solid transparent; border-radius: 9px; color: #a5aac1; font-size: 13px; transition: color .15s, background .15s; }
 .nav-item:hover { background: #202236; color: white; }
 .nav-item.active { background: linear-gradient(110deg, #7254ed, #3d50d3 70%, #343da9); color: white; border-color: #7467ed80; box-shadow: 0 4px 16px #4538c318, inset 0 1px 0 #ffffff10; }

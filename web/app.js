@@ -198,7 +198,6 @@ function refresh() {
   const done = items.filter((item) => item.result).length;
   const blocked = items.filter((item) => item.state === 'blocked').length;
   $('file-count').textContent = String(items.length);
-  $('nav-file-count').textContent = String(items.length);
   $('total-size').textContent = bytes(items.reduce((size, item) => size + item.file.size, 0));
   $('clear-completed').disabled = busy || !done;
   renderRecent();
@@ -537,7 +536,6 @@ $('stop').addEventListener('click', () => {
 $('download-all').addEventListener('click', downloadAll);
 $('reconnect').addEventListener('click', connect);
 $('format-grid').addEventListener('change', updateFormats);
-$('formats-help').addEventListener('click', () => $('help-dialog').showModal());
 $('formats-help-top').addEventListener('click', () => $('help-dialog').showModal());
 $('close-help').addEventListener('click', () => $('help-dialog').close());
 $('help-done').addEventListener('click', () => $('help-dialog').close());
