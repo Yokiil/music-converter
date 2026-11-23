@@ -51,6 +51,16 @@ async def main():
             # Duplicate input does not duplicate the pending queue.
             await page.locator("#file-input").set_input_files([str(candidates[0])])
             assert await page.locator(".file-row").count() == 4
+            assert await page.locator(".recent-row").count() == 4
+            assert await page.locator("#total-size").inner_text() != "0 B"
+            await page.locator("#file-search").fill("酷狗")
+            await expect(page.locator(".file-row:visible")).to_have_count(1)
+            await page.locator("#file-search").fill("不存在的音乐")
+            await expect(page.locator("#search-empty")).to_be_visible()
+            await page.locator("#file-search").fill("")
+            await expect(page.locator(".file-row:visible")).to_have_count(4)
+            await page.locator('.nav-item[href="#settings-section"]').click()
+            await expect(page.locator('.nav-item[href="#settings-section"]')).to_have_class("nav-item active")
             await page.screenshot(path=str(shots / "web-ready.png"), full_page=True)
             await page.locator("#convert").click()
             await expect(page.locator(".download-link")).to_have_count(4, timeout=30000)
@@ -78,9 +88,12 @@ async def main():
                     assert len(z.namelist()) == 4
                     assert all(n.endswith(".mp3") for n in z.namelist())
                     assert "网易云合成 FLAC.mp3" in z.namelist()
+            await page.evaluate("() => window.scrollTo({ top: 0, behavior: 'instant' })")
             await page.screenshot(path=str(shots / "web-results.png"), full_page=True)
             # File names are rendered as text, never injected as HTML.
-            await page.locator("#clear-files").click()
+            await page.locator("#clear-completed").click()
+            await expect(page.locator(".file-row")).to_have_count(0)
+            await expect(page.locator("#recent-empty")).to_be_visible()
             await page.locator("#file-input").set_input_files({"name": "<img src=x onerror=alert(1)>.mgg", "mimeType": "application/octet-stream", "buffer": b"bad audio"})
             await expect(page.locator(".file-status")).to_have_class("file-status error")
             assert not await page.locator("#file-list img").count()
@@ -119,6 +132,13 @@ async def main():
             await mobile.goto(BASE, wait_until="domcontentloaded")
             await mobile.locator("#service-status.connected").wait_for()
             assert await mobile.evaluate("document.documentElement.scrollWidth <= window.innerWidth"), "mobile overflow"
+            for width in (320, 768, 1024):
+                await mobile.set_viewport_size({"width": width, "height": 844})
+                assert await mobile.evaluate("document.documentElement.scrollWidth <= window.innerWidth"), f"overflow at {width}px"
+            await mobile.set_viewport_size({"width": 390, "height": 844})
+            await mobile.locator("#formats-help-top").click()
+            await expect(mobile.locator("#help-dialog")).to_be_visible()
+            await mobile.locator("#help-done").click()
             await mobile.locator("#file-input").set_input_files([str(candidates[0])])
             await expect(mobile.locator("#ready-count")).to_have_text("1")
             await mobile.screenshot(path=str(shots / "web-mobile.png"), full_page=True)

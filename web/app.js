@@ -92,31 +92,37 @@ function renderItem(item) {
   const failed = ['blocked', 'error'].includes(item.state);
   const working = ['inspecting', 'converting'].includes(item.state);
   const avatar = element('span', `file-avatar${item.result ? ' done' : failed ? ' error' : ''}`);
-  avatar.append(icon(item.result ? 'check' : 'note'));
+  avatar.append(icon('note'));
   const content = element('div', 'file-info');
   const title = element('p', 'file-title', item.file.name);
   title.title = item.file.name;
   const meta = element('div', 'file-meta');
   const details = [bytes(item.file.size)];
   if (item.info?.container && item.info.container !== '未知') details.push(item.info.container);
-  if (item.result) details.push(`已输出 ${labels[item.result.format] || '音频'} · ${bytes(item.result.blob.size)}`);
-  else if (item.info?.duration_seconds) details.push(duration(item.info.duration_seconds));
+  if (item.info?.duration_seconds) details.push(duration(item.info.duration_seconds));
   details.forEach((text, index) => {
     if (index) meta.append(element('span', 'separator', '·'));
     meta.append(element('span', '', text));
   });
+  content.append(title, meta);
+  const output = element('div', `file-output${item.result ? ' done' : ''}`);
+  const outputText = item.result ? `${item.result.name.split('.').pop().toUpperCase()} · ${bytes(item.result.blob.size)}` : labels[selectedFormat()];
+  output.append(icon('arrow'), element('span', '', outputText));
+  output.title = item.result ? item.result.name : `目标：${labels[selectedFormat()]}`;
+  const track = element('div', 'file-track');
   const status = element('div', `file-status${failed ? ' error' : item.result ? ' done' : item.state === 'ready' ? ' ready' : ''}`);
   if (working) status.append(element('span', 'spinner'));
-  const defaultText = { queued: '等待识别', inspecting: '正在自动识别…', ready: '识别完成，等待转换', done: '转换完成，可以下载' };
-  status.append(element('span', 'file-status-text', item.message || defaultText[item.state] || ''));
-  content.append(title, meta, status);
-  if (working) {
-    const progress = element('progress', 'file-progress');
-    progress.max = 100;
-    progress.setAttribute('aria-label', item.state === 'inspecting' ? '文件识别进度' : '当前文件传输进度');
-    if (item.percent !== null && item.percent !== undefined) progress.value = item.percent;
-    content.append(progress);
-  }
+  const defaultText = { queued: '等待识别', inspecting: '正在自动识别…', ready: '等待转换', done: '转换完成 · 100%' };
+  const statusText = element('span', 'file-status-text', item.message || defaultText[item.state] || '');
+  statusText.title = statusText.textContent;
+  status.append(statusText);
+  const progress = element('progress', `file-progress${item.result ? ' done' : ''}`);
+  progress.max = 100;
+  progress.setAttribute('aria-label', item.state === 'inspecting' ? '文件识别进度' : '当前文件传输进度');
+  if (item.result) progress.value = 100;
+  else if (!working) progress.value = 0;
+  else if (item.percent !== null && item.percent !== undefined) progress.value = item.percent;
+  track.append(status, progress);
   const actions = element('div', 'file-actions');
   if (item.result) {
     const download = element('a', 'download-link', '下载');
@@ -151,7 +157,39 @@ function renderItem(item) {
   remove.disabled = busy;
   remove.addEventListener('click', () => removeItem(item));
   actions.append(remove);
-  row.append(avatar, content, actions);
+  row.append(avatar, content, output, track, actions);
+}
+
+function renderRecent() {
+  const list = $('recent-list');
+  list.replaceChildren();
+  $('recent-empty').hidden = items.length > 0;
+  for (const item of items.slice(-5).reverse()) {
+    const row = element('li', 'recent-row');
+    const mark = element('span', 'recent-icon');
+    mark.append(icon('note'));
+    const description = element('div', 'recent-name');
+    const title = element('strong', '', item.file.name);
+    title.title = item.file.name;
+    description.append(title, element('small', '', [bytes(item.file.size), duration(item.info?.duration_seconds)].filter(Boolean).join(' · ')));
+    const type = item.info?.codec || item.file.name.split('.').pop() || 'AUDIO';
+    const shortType = /^[a-z0-9]{1,8}$/i.test(type) ? type.toUpperCase() : 'AUDIO';
+    const badge = element('span', 'format-badge', shortType);
+    if (['mp3', 'flac', 'wav', 'm4a', 'aac'].includes(type.toLowerCase())) badge.classList.add(type.toLowerCase());
+    row.append(mark, description, badge);
+    list.append(row);
+  }
+}
+
+function filterFiles() {
+  const query = $('file-search').value.trim().toLocaleLowerCase();
+  let visible = 0;
+  for (const item of items) {
+    const text = `${item.file.name} ${item.info?.container || ''} ${item.info?.codec || ''}`.toLocaleLowerCase();
+    item.node.hidden = Boolean(query && !text.includes(query));
+    if (!item.node.hidden) visible += 1;
+  }
+  $('search-empty').hidden = !items.length || !query || visible > 0;
 }
 
 function refresh() {
@@ -160,6 +198,11 @@ function refresh() {
   const done = items.filter((item) => item.result).length;
   const blocked = items.filter((item) => item.state === 'blocked').length;
   $('file-count').textContent = String(items.length);
+  $('nav-file-count').textContent = String(items.length);
+  $('total-size').textContent = bytes(items.reduce((size, item) => size + item.file.size, 0));
+  $('clear-completed').disabled = busy || !done;
+  renderRecent();
+  filterFiles();
   $('ready-count').textContent = String(busy ? batch?.total || 0 : ready);
   $('empty-state').hidden = items.length > 0;
   $('queue-footer').hidden = !items.length;
@@ -194,6 +237,7 @@ function updateFormats() {
     select.append(option);
   }
   $('quality-note').textContent = fmt === 'source' ? '实际输出格式由原始音轨决定。原始文件会保留，不会被覆盖。' : '有损音频转成 FLAC 或 WAV，不会恢复已经损失的音质。';
+  items.forEach(renderItem);
   refresh();
 }
 
@@ -285,7 +329,7 @@ function postFile(item, endpoint, params, converting = false) {
       item.message = message;
       item.percent = percent;
       const statusText = item.node.querySelector('.file-status-text');
-      if (statusText) statusText.textContent = message;
+      if (statusText) { statusText.textContent = message; statusText.title = message; }
       const progress = item.node.querySelector('.file-progress');
       if (progress) {
         if (percent === null) progress.removeAttribute('value');
@@ -462,6 +506,27 @@ $('clear-files').addEventListener('click', () => {
   for (const item of items.slice()) removeItem(item);
   $('batch-progress').hidden = true;
 });
+$('clear-completed').addEventListener('click', () => {
+  if (busy) return;
+  for (const item of items.filter((entry) => entry.result)) removeItem(item);
+  if (!items.length) $('batch-progress').hidden = true;
+});
+$('file-search').addEventListener('input', filterFiles);
+window.addEventListener('keydown', (event) => {
+  if (event.key === '/' && !event.ctrlKey && !event.metaKey && !['INPUT', 'SELECT', 'TEXTAREA'].includes(document.activeElement?.tagName) && !$('help-dialog').open) {
+    event.preventDefault();
+    $('file-search').focus();
+  }
+});
+document.querySelectorAll('.nav-item').forEach((link) => {
+  link.addEventListener('click', () => {
+    document.querySelectorAll('.nav-item').forEach((other) => {
+      other.classList.toggle('active', other === link);
+      if (other === link) other.setAttribute('aria-current', 'location');
+      else other.removeAttribute('aria-current');
+    });
+  });
+});
 $('convert').addEventListener('click', startBatch);
 $('stop').addEventListener('click', () => {
   stopRequested = true;
@@ -473,6 +538,7 @@ $('download-all').addEventListener('click', downloadAll);
 $('reconnect').addEventListener('click', connect);
 $('format-grid').addEventListener('change', updateFormats);
 $('formats-help').addEventListener('click', () => $('help-dialog').showModal());
+$('formats-help-top').addEventListener('click', () => $('help-dialog').showModal());
 $('close-help').addEventListener('click', () => $('help-dialog').close());
 $('help-done').addEventListener('click', () => $('help-dialog').close());
 $('help-dialog').addEventListener('click', (event) => { if (event.target === $('help-dialog')) { const bounds = $('help-dialog').getBoundingClientRect(); if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) $('help-dialog').close(); } });
