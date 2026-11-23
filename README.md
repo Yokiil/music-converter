@@ -2,7 +2,7 @@
 
 Windows 本地音频工具：先辨认文件，再导出原编码或批量转成 MP3、FLAC、M4A/AAC、WAV、Ogg/Vorbis。转换不需要联网或登录音乐平台，不覆盖原文件和已有输出。
 
-**普通音频可直接转换。平台封装必须提供适合该文件版本、且你获准使用的本地导出参数。** 仓库不附平台音频密钥、个人参数文件或歌曲。没有可用参数的会员缓存、未知或新版封装不会变成 MP3，也不会仅改后缀来充当成功。
+**普通音频可直接转换；网页版已内置常见 NCM 封装的公开格式参数，无需另传 JSON。** 其他平台的部分封装仍需服务器配置匹配版本的导出参数，支持范围见下表。内置值不是账号信息或每首歌的密钥，来源和许可见 [第三方声明](./THIRD_PARTY.md)。不处理未知封装时，不会仅改后缀来充当成功。
 
 ## 网页版
 
@@ -30,7 +30,7 @@ python -m pip install --require-hashes --target .deps -r requirements-adapters.t
 
 | 平台 | 已用合成文件验证的结构 | JSON 参数组 |
 |---|---|---|
-| 网易云音乐 | NCM；验证过内层 MP3、FLAC、封面及中文标签 | `ncm`：`core_key`（16 字节），可选 `tag_key`（16 字节） |
+| 网易云音乐 | NCM；验证过内层 MP3、FLAC、封面及中文标签 | 网页后端默认内置；桌面端或自定义覆盖可用 `ncm.core_key`（16 字节）与 `tag_key`（16 字节） |
 | QQ 音乐 | QMC v1（`.qmc*` 老封装）；QMC v2 的长度尾、QTag、STag，并包含 EncV2 合成用例。`.mflac`、`.mgg` 等后缀不等于兼容 | `qmc1`：`mask`（44/128/256 字节）；`qmc2`：`core_key`（8 字节），EncV2 还需有序的 `garble_keys`（每项 16 字节）；STag 需要与该文件对应的 `master_key`（128/256/512 字节） |
 | 酷狗音乐 | KGM **v3**、VPR **v3**；新版 KGM/KGMA 未验证 | `kgm`：`table1`、`table2`、`tablev2`（各 272 字节），VPR 另需 `vpr_key`（17 字节） |
 | 酷我音乐 | `yeelion-kuwo` 头的 KWM 结构 | `kwm`：`core_key`（32 字节） |

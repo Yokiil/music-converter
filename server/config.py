@@ -4,8 +4,10 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
+from types import MappingProxyType
 
 from core import platforms
+from core.default_profiles import default_profile
 
 MIB = 1024 ** 2
 
@@ -20,6 +22,7 @@ class ServerConfig:
     upload_timeout: float = 60
     processing_timeout: float = 120
     download_timeout: float = 90
+    enable_builtin_ncm: bool = True
 
     @classmethod
     def from_env(cls) -> ServerConfig:
@@ -36,6 +39,9 @@ class ServerConfig:
             value = os.environ.get(name, "").strip()
             return Path(value).expanduser() if value else None
 
+        builtin_ncm = os.environ.get("MUSIC_BUILTIN_NCM", "1").strip().lower()
+        if builtin_ncm not in {"1", "0", "true", "false"}:
+            raise ValueError("MUSIC_BUILTIN_NCM 只能是 1、0、true 或 false。")
         default_profile = Path(__file__).resolve().parents[1] / "server-profile.local.json"
         profile_path = path_var("MUSIC_SERVER_PROFILE")
         if profile_path is None and default_profile.is_file():
@@ -49,17 +55,21 @@ class ServerConfig:
             upload_timeout=number("MUSIC_UPLOAD_TIMEOUT", 60, 5, 300),
             processing_timeout=number("MUSIC_PROCESSING_TIMEOUT", 120, 5, 600),
             download_timeout=number("MUSIC_DOWNLOAD_TIMEOUT", 90, 5, 300),
+            enable_builtin_ncm=builtin_ncm in {"1", "true"},
         )
 
     def load_profile(self) -> platforms.Profile:
         if self.temp_dir is not None and not self.temp_dir.is_dir():
             raise ValueError("MUSIC_TEMP_DIR 必须指向现有的工作目录。")
-        if self.profile_path is None:
-            return platforms.EMPTY_PROFILE
-        try:
-            profile = platforms.load_profile(self.profile_path)
-        except OSError:
-            raise ValueError("无法打开 MUSIC_SERVER_PROFILE 指定的本机文件。") from None
+        profile = platforms.EMPTY_PROFILE
+        if self.profile_path is not None:
+            try:
+                profile = platforms.load_profile(self.profile_path)
+            except OSError:
+                raise ValueError("无法打开 MUSIC_SERVER_PROFILE 指定的本机文件。") from None
         if "master_key" in profile.get("qmc2", {}):
             raise ValueError("服务端共享配置不接受 qmc2.master_key；该字段只适用于对应的单曲。")
-        return profile
+        combined = {name: dict(values) for name, values in (default_profile() if self.enable_builtin_ncm else {}).items()}
+        for family, fields in profile.items():
+            combined.setdefault(family, {}).update(fields)
+        return MappingProxyType({name: MappingProxyType(values) for name, values in combined.items()})
