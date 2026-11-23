@@ -1,0 +1,6 @@
+libtakiyasha==2.1.1.post1 \
+    --hash=sha256:b92f9a2db245c1cd70e74118780c35dd8cf09ab4aac35d83221ad49060aa705a
+mutagen==1.47.0 \
+    --hash=sha256:edd96f50c5907a9539d8e5bba7245f62c9f520aef333d13392a79a4f70aca719
+pyaes==1.6.1 \
+    --hash=sha256:02c1b1405c38d3c370b085fb952dd8bea3fadcee6411ad99f312cc129c536d8f

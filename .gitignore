@@ -1,0 +1,52 @@
+# Local tools, dependencies and build products
+/bin/
+/vendor/
+/.deps/
+/.venv/
+/__pycache__/
+__pycache__/
+*.py[cod]
+/.pytest_cache/
+/.idea/
+/.vscode/
+/build/
+/dist/
+*.exe
+*.dll
+*.zip
+
+# Machine-specific launchers from the earlier local prototype
+/启动.bat
+/调试启动.bat
+
+# Private configuration and generated exports
+*.json
+*.key
+.env
+.env.*
+*.pem
+*.pfx
+.gh*
+/.demo-*/
+.music-*/
+/转换输出/
+
+# Audio/media and local prototype test artifacts (source fixtures only)
+/tests/*
+!/tests/__init__.py
+!/tests/fixtures.py
+!/tests/test_converter.py
+*.mp3
+*.flac
+*.wav
+*.m4a
+*.aac
+*.ogg
+*.opus
+*.ncm
+*.qmc*
+*.mflac*
+*.mgg*
+*.kgm*
+*.kwm
+*.vpr
