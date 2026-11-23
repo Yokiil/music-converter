@@ -73,11 +73,6 @@ async def _run_browser(directory: Path):
             assert await page.locator(".file-row").count() == total
             assert await page.locator(".recent-row").count() == total
             assert await page.locator("#total-size").inner_text() != "0 B"
-            await page.locator("#file-search").fill("酷狗")
-            await expect(page.locator(".file-row:visible")).to_have_count(1)
-            await page.locator("#file-search").fill("不存在的音乐")
-            await expect(page.locator("#search-empty")).to_be_visible()
-            await page.locator("#file-search").fill("")
             await expect(page.locator(".file-row:visible")).to_have_count(total)
             await expect(page.locator('.side-nav .nav-item')).to_have_count(1)
             await page.locator('.nav-item[href="#overview"]').click()

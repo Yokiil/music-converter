@@ -181,17 +181,6 @@ function renderRecent() {
   }
 }
 
-function filterFiles() {
-  const query = $('file-search').value.trim().toLocaleLowerCase();
-  let visible = 0;
-  for (const item of items) {
-    const text = `${item.file.name} ${item.info?.container || ''} ${item.info?.codec || ''}`.toLocaleLowerCase();
-    item.node.hidden = Boolean(query && !text.includes(query));
-    if (!item.node.hidden) visible += 1;
-  }
-  $('search-empty').hidden = !items.length || !query || visible > 0;
-}
-
 function refresh() {
   const ready = readyItems().length;
   const pending = items.some((item) => ['queued', 'inspecting'].includes(item.state));
@@ -201,7 +190,6 @@ function refresh() {
   $('total-size').textContent = bytes(items.reduce((size, item) => size + item.file.size, 0));
   $('clear-completed').disabled = busy || !done;
   renderRecent();
-  filterFiles();
   $('ready-count').textContent = String(busy ? batch?.total || 0 : ready);
   $('empty-state').hidden = items.length > 0;
   $('queue-footer').hidden = !items.length;
@@ -509,13 +497,6 @@ $('clear-completed').addEventListener('click', () => {
   if (busy) return;
   for (const item of items.filter((entry) => entry.result)) removeItem(item);
   if (!items.length) $('batch-progress').hidden = true;
-});
-$('file-search').addEventListener('input', filterFiles);
-window.addEventListener('keydown', (event) => {
-  if (event.key === '/' && !event.ctrlKey && !event.metaKey && !['INPUT', 'SELECT', 'TEXTAREA'].includes(document.activeElement?.tagName) && !$('help-dialog').open) {
-    event.preventDefault();
-    $('file-search').focus();
-  }
 });
 document.querySelectorAll('.nav-item').forEach((link) => {
   link.addEventListener('click', () => {
