@@ -8,6 +8,8 @@
 
 `Python 3.10+` · `FastAPI` · `FFmpeg` · `Windows / Web` · `MIT` · 纯本地运行
 
+**[⬇ 下载 v0.1.0](https://github.com/Yokiil/music-converter/releases/latest)** &nbsp;·&nbsp; [快速开始](#快速开始) &nbsp;·&nbsp; [支持范围](#支持范围) &nbsp;·&nbsp; [常见问题](#限制说明)
+
 <img src="docs/screenshot.jpg" width="880" alt="声转网页界面：五个不同平台的音频文件识别后一键转换成 MP3">
 
 </div>
