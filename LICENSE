@@ -19,18 +19,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
----
-
-Third-party exception
-
-This license does not cover the following files, which are separately
-licensed under the GNU Lesser General Public License v2.1 or later:
-
-  core/vendor_readers.py   — KGM/KGMA/VPR reader, ported from MusicDecrypto.Library
-  core/mask_reader.py      — KWM reader, ported from MusicDecrypto.Library
-
-Their upstream revision, source links, change notes and the full LGPL text are
-retained in THIRD_PARTY.md and licenses/MusicDecrypto-LGPL-2.1.txt.
-Bundled and runtime dependencies (libtakiyasha, pyaes, Mutagen, FFmpeg) keep
-their own licenses; see THIRD_PARTY.md.
