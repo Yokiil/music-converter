@@ -37,3 +37,19 @@ def default_profile() -> Profile:
         "kwm": {"core_key": b"MoOtOiTvINGwd2E6n0E1i7L5t2IoOoNk"},
         "kgm": {"slot_key": b"l,/'"},
     }.items()})
+
+
+def merge_profile(overrides: Profile, *, include_defaults: bool = True,
+                  exclude: tuple[str, ...] = ()) -> Profile:
+    """Layer explicit per-field overrides on the published defaults.
+
+    ``exclude`` drops individual *built-in* families only; an override for the
+    same family is still applied, so operators can supply their own values while
+    the shipped defaults stay off. Overrides never mutate the module constants.
+    """
+    combined = {name: dict(values) for name, values in
+                (default_profile() if include_defaults else {}).items()
+                if name not in exclude}
+    for family, fields in overrides.items():
+        combined.setdefault(family, {}).update(fields)
+    return MappingProxyType({name: MappingProxyType(values) for name, values in combined.items()})

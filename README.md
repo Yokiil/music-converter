@@ -1,75 +1,200 @@
-# 音乐转换器
+<div align="center">
 
-Windows 本地音频工具：先辨认文件，再导出原编码或批量转成 MP3、FLAC、M4A/AAC、WAV、Ogg/Vorbis。转换不需要联网或登录音乐平台，不覆盖原文件和已有输出。
+# 声转 · 音乐转换器
 
-**网页版已默认接通普通音频，以及网易云、QQ 音乐、酷我、酷狗的下列可自动读取格式，无需客户填写参数或平台。** 这些默认值来自可核对的公开实现，不是用户账号信息。具体版本边界见下表；源码和许可见 [第三方声明](./THIRD_PARTY.md)。没有内嵌可恢复密钥的新封装或未知版本会明确失败，不会仅改后缀充当成功。
+**上传本地音乐，自动识别格式，换成你想要的声音。**
 
-## 网页版
+网易云 NCM · QQ 音乐 QMC · 酷狗 KGM · 酷我 KWM · 常见音频格式，一个网页全部搞定
 
-已提供中文网页与配套 HTTP API。运行 [Start-Backend.bat](./Start-Backend.bat) 后打开 [本机音乐转换网页](http://127.0.0.1:8787/)，即可拖入文件自动识别、选择格式、顺序批量转换并下载，多个结果可以打包成 ZIP。网页适配电脑和手机宽度，不需要另装前端开发工具。
+`Python 3.10+` · `FastAPI` · `FFmpeg` · `Windows / Web` · 纯本地运行
 
-服务器启动时读取一次固定配置，客户不需要填写平台或密钥。安装、配置、接口契约和浏览器测试方法见 [后端接入](./后端接入.md)。
+<img src="docs/screenshot.jpg" width="880" alt="声转网页界面：五个不同平台的音频文件识别后一键转换成 MP3">
 
-## 桌面版开始使用
+</div>
 
-1. 安装带 Tkinter 的 Python 3.10 或更新版本，以及 [FFmpeg](https://ffmpeg.org/download.html) 和 ffprobe。在 Windows 上可从 [Gyan FFmpeg Builds](https://www.gyan.dev/ffmpeg/builds/) 获取 essentials 构建；将 `ffmpeg.exe`、`ffprobe.exe` 放进项目的 `bin` 目录，或加入 `PATH`。
-2. 双击 [Start.bat](./Start.bat)，或者运行 `python app.py`。应用已在这台电脑配置好时，可直接启动。
-3. 添加、拖入文件或添加文件夹。双击诊断结果可看原因。普通文件如果包含多个音轨，使用第一条。
-4. 默认选 **原始音频（不转码）**，保留兼容音轨的原编码。一定要 MP3 时选 **MP3**；码率选「原样 / 默认」时，源编码相同就不重新压缩，其他情况用默认码率。选择具体码率则会重新编码。
-5. 选择保存目录，点「开始转换」。同名会加 `(1)`、`(2)`，成功后可点「打开输出」。
+---
 
-### 处理平台封装
+## 这是个什么项目
 
-先双击 [Install-Adapters.bat](./Install-Adapters.bat)（只写项目里的 `.deps`），或执行：
+同一个音乐文件，在不同场景下可能要不同格式：车机只认 MP3、素材库要 WAV、归档想留无损。
+**声转**是一套本地运行的转换工具，两条入口共用同一套转换内核：
+
+- **网页版**（推荐）：拖文件进浏览器 → 自动识别 → 选格式 → 下载。手机宽度也能用。
+- **桌面版**：Windows 原生窗口，支持资源管理器拖放、批量导入整个文件夹。
+
+转换全程不联网、不登录任何音乐平台，**不上传歌曲到第三方，也不改动原文件**。
+
+## 功能
+
+| 能力 | 说明 |
+|---|---|
+| **上传即识别** | 不按后缀猜格式，读文件头、文件尾和还原后的音频头；后缀改错照样识别 |
+| **四平台默认接通** | 网易云、QQ 音乐、酷我、酷狗的受支持版本开箱可转，客户不需要填任何参数 |
+| **六种输出** | MP3 / FLAC / M4A / WAV / OGG / 保留原始编码 |
+| **同编码不重编码** | 源编码与目标一致时直接复制音频流，音质零损失，速度接近秒出 |
+| **保留标签与封面** | 标题、歌手、专辑、JPEG/PNG 封面尽量带到 MP3、FLAC、M4A |
+| **批量队列** | 依次转换、实时状态、可停止、单条重试；多选结果可打包成 ZIP |
+| **深色工作台** | 桌面与手机自适应，纯原生前端，无构建步骤 |
+
+## 支持范围
+
+> ⚠️ 平台格式各有多个版本，**这里写的是"实测能转的范围"，不是"全部都能转"。**
+> 遇到不支持的版本会明确告诉你原因，不会给一个打不开的 MP3。
+
+| 平台 | 默认支持 | 暂不支持自动转换 |
+|---|---|---|
+| 网易云音乐 | 常见 `.ncm`（内层 MP3 / FLAC，含中文标签与封面） | 非 NCM 的其他网易云缓存、未知变体 |
+| QQ 音乐 | QMC v1；QMC v2 的长度尾、QTag、EncV2（Map 与 RC4 两种内层） | STag、musicex、缺少可恢复内嵌密钥的版本 |
+| 酷狗音乐 | `.kgm` / `.kgma` / `.vpr` 的 **type 2、type 3、slot 1**（校验文件签名） | type 4、未知 type、未知 slot |
+| 酷我音乐 | `.kwm` 标准头，自动尝试 32/64 位种子并验证音频 | 其他封装或解码后不是有效音频 |
+| 普通音频 | MP3、FLAC、WAV、M4A/AAC、ALAC、OGG、Opus、APE、WMA、AIFF、DSD、WavPack、TTA 等 | —— |
+
+判定"支持"的标准是**真的解出了可播放音频**：结构识别只是候选，还要通过签名、音轨和完整解码校验。
+
+## 快速开始
+
+### 1. 准备 FFmpeg
+
+把 `ffmpeg.exe` 与 `ffprobe.exe` 放进项目的 `bin/` 目录，或确保它们在 `PATH` 中。
+Windows 可从 [Gyan FFmpeg Builds](https://www.gyan.dev/ffmpeg/builds/) 下载 essentials 压缩包。
+
+### 2. 安装依赖
 
 ```powershell
+python -m pip install -r requirements-server.txt
 python -m pip install --require-hashes --target .deps -r requirements-adapters.txt
 ```
 
-用「加载本地参数…」选择你自己的 JSON 文件。参数只在当前应用会话生效，不上传、不自动保存。应用会重新诊断已添加的文件。「可尝试导出」表示已识别结构且参数字段齐全；参数正确与否要到实际导出时才会校验。「缺导出参数」或「暂不支持」的行会跳过。无需添加账号、Cookie、客户端路径或在线链接。
+第二条装的是平台格式的**可选适配器**，只写进项目内的 `.deps/`，不污染系统 Python。
+也可以直接双击 `Install-Adapters.bat`。
 
-| 平台 | 网页默认支持（已用合成音频端到端验证） | 仍不支持自动转换的情况 |
+### 3. 启动
+
+**网页版**
+
+```powershell
+python -m server
+```
+
+打开 <http://127.0.0.1:8787/>，拖文件、选格式、点开始即可。也可以双击 `Start-Backend.bat`。
+
+**桌面版**
+
+```powershell
+python app.py
+```
+
+或双击 `Start.bat`。
+
+界面细节、环境变量和部署注意事项见 [后端接入.md](后端接入.md) 与 [使用说明.md](使用说明.md)。
+
+## 工作原理
+
+```
+浏览器 ──POST 原始字节──▶ /
+                          ├─ /api/v1/inspect   只识别，不动文件
+                          └─ /api/v1/convert   识别 → 提取 → 转码 → 返回音频
+                                   │
+                    ┌──────────────┼───────────────┐
+                    ▼              ▼               ▼
+               普通音频       平台封装          不支持
+             （ffprobe）   （文件头/尾 +       （说明原因）
+                            按版本选读取器）
+                    │              │
+                    └──────┬───────┘
+                           ▼
+                 FFmpeg 转码 / 复制音频流
+                           ▼
+              输出校验 → 原子发布 → 下载
+```
+
+几个关键设计：
+
+- **服务端配置只读一次**：共享参数在启动时加载，客户端无法用请求覆盖，也就不存在"上传一个 JSON 改服务器行为"。
+- **临时目录隔离**：每个请求独立目录，下载完成、失败或断开后清理。
+- **输出先验证再返回**：产物必须能被 ffprobe 解析且编码正确，否则一律当失败处理，不返回半成品。
+
+## HTTP API
+
+| 方法 | 路径 | 用途 |
 |---|---|---|
-| 网易云音乐 | 常见 NCM，内层 MP3/FLAC，中文标签、PNG/JPEG 封面 | 不是 NCM 的其他网易云缓存、未知变体或损坏文件 |
-| QQ 音乐 | QMC v1；QMC v2 的长度尾、QTag、EncV2，含 Map 和 RC4 内层。`.mflac0`、`.mgg0` 是否可读取决于结构 | STag、musicex、缺少可恢复内嵌单曲密钥的版本 |
-| 酷狗音乐 | KGM / KGMA / VPR 的 **type 2、type 3，slot 1**；读取并校验文件签名，无需三表 | type 4 或未知 type、未知 slot、签名不匹配 |
-| 酷我音乐 | KWM，固定文件头与 1024 字节音频起点；自动试 32/64 位种子并验证实际音频 | 未知头、其他封装或解码后不是有效音频 |
+| GET | `/healthz` | FFmpeg / ffprobe 是否就绪 |
+| GET | `/api/v1/capabilities` | 支持的输出格式、码率与大小限制 |
+| POST | `/api/v1/inspect?filename=歌名.ncm` | 只诊断，返回状态与原因 |
+| POST | `/api/v1/convert?filename=歌名.ncm&format=mp3` | 直接返回音频附件 |
 
-普通文件通过 ffprobe 识别；平台文件优先看文件头、QQ 文件尾或默认掩码还原后的音频头。保留原始文件名仍有助于诊断，但改变后缀不能让未支持的版本变为可转换。上传后判定为可尝试导出，还会经过实际音轨校验；原编码平台输出也会进行完整解码检查。
+请求体是**原始文件字节**（`Content-Type: application/octet-stream`），不是 JSON 或表单。
+转换失败统一返回 `{"error":{"code":"…","message":"…"}}`，常见 code 有
+`needs_server_config`、`requires_file_key`、`unsupported_format`、`conversion_failed`、`upload_too_large`。
 
-桌面版或自定义变体仍可显式加载 JSON：`ncm` 含 `core_key` / `tag_key`（各 16 字节）；`qmc1.mask` 为 44/128/256 字节；`qmc2.core_key` 为 8 字节、`garble_keys` 为有序的 16 字节列表；`kwm.core_key` 为 32 字节；原生 `kgm.slot_key` 为 4 字节。旧版三表的显式配置保留为兼容路径（每表 272 字节，VPR 另需 17 字节参数），不影响网页默认的原生读取路径。
+## 本地测试
 
-参数字段的值用十六进制字符串（不带 `0x` 或空格），`garble_keys` 用字符串数组。顶层可只包含需要的一组，例如 `{"ncm":{"core_key":"你的16字节参数的32位十六进制文本"}}`（占位文本并非有效参数）。`master_key` 会覆盖该次会话中 QQ v2 文件的内嵌密钥，只在单独处理匹配文件时加载该组。不要把含参数的文件提交到 Git，也不要分享个人账号或凭据。
-
-封装读取核心每个文件最大 256 MiB，网页默认上传限制为 64 MiB，可由服务器调整。没有列出的平台或版本不在承诺范围。QQ 的单曲 `master_key` 只对应其匹配文件，服务器不会把它作为全站默认值。请只处理你有权导出的文件。
-
-### 音质、标签与封面
-
-- 「原始音频」在支持的 MP3、FLAC、AAC/ALAC、Ogg/Vorbis、Opus、部分 WAV/PCM 之间选择与音频编码对应的输出封装，只复制音频流。对其他编码可手动选择目标格式。它不复制视频画面，不保证容器逐字节相同。
-- 标题、歌手、专辑及 JPEG/PNG 封面尽量保留到支持的目标（MP3、FLAC、M4A）；WAV、Ogg 在本工具中不写封面。标签能否保留还取决于源文件及目标格式。
-- 把 MP3 转成 FLAC 不会恢复已经丢掉的音质。选择有损格式或较低位深时，可能改变音质；不会改动原文件。
-
-## 本地验证
-
-测试只生成单音调和纯色图，不带真实歌曲或平台参数。先装好 FFmpeg 和可选适配器，再在项目根目录运行：
+测试**不需要真实歌曲，也不需要任何平台账号**：脚本会现场生成单音调，封装成各平台格式，再跑完整链路。
 
 ```powershell
 $env:REQUIRE_ADAPTERS = '1'
-$env:TEST_GUI = '1'  # 有 Windows 桌面时启用窗口测试；无界面环境可不设置
-python -m unittest -v tests.test_converter
+python -m unittest -v tests.test_converter tests.test_server tests.test_ncm_defaults `
+    tests.test_platform_defaults tests.test_vendor_readers
 ```
 
-想自己在窗口试用，可先生成可拖入的演示文件：
+覆盖内容：
+
+- 普通音频与视频容器、误改后缀、截断文件、播放列表伪装
+- 四个平台的默认识别与真实转码，原音频包哈希逐字节比对
+- 错误密钥、损坏签名、未知版本、STag / musicex 等不支持边界
+- 上传与产物大小限制、并发上限、超时取消、临时目录清理
+- 网页端到端：真实浏览器上传、MP3 下载、ZIP 打包、手机布局
+
+网页交互测试（可选，需要 Playwright 与本机浏览器）：
 
 ```powershell
-python -m tests.fixtures
+python -m tests.browser_smoke
 ```
 
-终端会打印本地样本目录和合成参数的位置。先加载 `demo-profile.local.json`，批量导入 `样本` 目录。STag 单独加载 `stag-profile.local.json` 再测试：它只匹配那一首合成文件。演示参数不能用于真实平台文件。
+## 目录结构
 
-## 依赖和源码范围
+```
+music-converter/
+├─ web/                 纯静态前端（HTML/CSS/JS，无构建）
+├─ server/              FastAPI 服务：路由、配置、启动
+├─ core/                转换内核
+│  ├─ probe.py          格式识别与判定
+│  ├─ convert.py        FFmpeg 调度、输出校验与原子发布
+│  ├─ platforms.py      封装解析与版本选择
+│  ├─ vendor_readers.py 酷狗 T2/T3 读取器
+│  ├─ mask_reader.py    酷我 KWM 读取器
+│  └─ default_profiles.py 公开格式默认参数
+├─ app.py               Windows 桌面版
+├─ tests/               合成样本与回归测试
+├─ licenses/            第三方许可证原文
+└─ THIRD_PARTY.md       来源与许可说明
+```
 
-- [libtakiyasha 2.1.1.post1](https://pypi.org/project/libtakiyasha/2.1.1.post1/) 是可选封装读取后端（[MIT](https://github.com/nukemiko/libtakiyasha/blob/2.1.1.post1/LICENSE)）。它的依赖 [pyaes](https://github.com/ricmoo/pyaes/blob/master/LICENSE.txt)（MIT）与 [Mutagen](https://pypi.org/project/mutagen/1.47.0/)（GPL-2.0-or-later）通过 pip 单独安装。
-- [FFmpeg](https://ffmpeg.org/legal.html) 与 ffprobe 是独立进程，具体许可证随各自构建而定，不随此源码仓库分发。
-- 原生酷狗／酷我读取模块以 LGPL-2.1-or-later 提供，对应源代码、修改说明和许可证随仓库保留。小型公开 QQ 密钥测试向量遵循其测试项目的 LGPL v3；详见 [第三方声明](./THIRD_PARTY.md)。
-- 本仓库不提交真实歌曲、个人参数或第三方二进制。上述明确标注的第三方及移植模块按各自许可证分发，其余项目代码未授予额外的开源许可。
+## 限制说明
+
+- **必须自带 FFmpeg**：仓库不分发二进制，请按上面步骤准备。
+- **平台格式会变**：厂商更新封装后，某些版本可能失效。遇到时项目会报"暂不支持"，而不是崩溃或产出坏文件。
+- **默认限额**：单文件上传 64 MiB、产物 128 MiB、并发 2，可用环境变量调整（见 [后端接入.md](后端接入.md)）。
+- **这是本机版本**：默认只监听 `127.0.0.1`。若要对外提供服务，还需补 HTTPS、鉴权、限流和隔离运行环境。
+- **桌面版仅 Windows**：网页版跨平台，但桌面版的拖放与部分交互依赖 Windows API。
+
+## 第三方与许可
+
+本项目的平台格式读取建立在若干公开实现之上，具体来源、固定版本和许可证原文都在
+[THIRD_PARTY.md](THIRD_PARTY.md) 与 [licenses/](licenses/) 中保留：
+
+| 组件 | 版本 | 许可 |
+|---|---|---|
+| [libtakiyasha](https://github.com/nukemiko/libtakiyasha) | 2.1.1.post1 | MIT |
+| [MusicDecrypto](https://github.com/davidxuang/MusicDecrypto)（酷狗 / 酷我读取器移植） | b97bedc0 | LGPL-2.1-or-later |
+| [qmc-decoder](https://github.com/presburger/qmc-decoder)（QMC v1 参数） | fb1e04b | MIT |
+| [ncmdump](https://github.com/taurusxin/ncmdump)（NCM 默认参数） | 1.5.1 | MIT |
+| [FFmpeg](https://ffmpeg.org/legal.html) | 按本机构建 | 视构建而定 |
+
+`core/vendor_readers.py` 与 `core/mask_reader.py` 为 LGPL-2.1-or-later 的 Python 移植，源码随仓库完整提供。
+其余项目代码保留所有权利，本仓库不对其额外授予开源许可。
+
+## 免责声明
+
+请只处理**你有权转换**的音频文件。本项目不提供音乐获取渠道，不绕过任何平台的账号或授权机制，
+也不对转换结果的合法用途作任何担保。

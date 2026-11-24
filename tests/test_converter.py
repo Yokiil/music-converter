@@ -222,6 +222,9 @@ class PlatformTests(unittest.TestCase):
             stack.enter_context(patch.object(app.messagebox, "askokcancel", return_value=True))
             window = app.MusicConverter()
             stack.callback(window._close)
+            # The desktop window must ship the same built-in platform defaults
+            # as the web backend, before any local JSON is loaded.
+            self.assertEqual(set(window.profile), {"ncm", "qmc1", "qmc2", "kwm", "kgm"})
             unknown = self.work / "未知.mgg"
             unknown.write_bytes(b"\x98" * 2345)
             paths = [p for p in self.data if "STag" not in p.name] + [unknown]

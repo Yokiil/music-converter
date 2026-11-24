@@ -4,10 +4,9 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
-from types import MappingProxyType
 
 from core import platforms
-from core.default_profiles import default_profile
+from core.default_profiles import merge_profile
 
 MIB = 1024 ** 2
 
@@ -74,9 +73,5 @@ class ServerConfig:
                 raise ValueError("无法打开 MUSIC_SERVER_PROFILE 指定的本机文件。") from None
         if "master_key" in profile.get("qmc2", {}):
             raise ValueError("服务端共享配置不接受 qmc2.master_key；该字段只适用于对应的单曲。")
-        combined = {name: dict(values) for name, values in (default_profile() if self.enable_builtin_platforms else {}).items()}
-        if not self.enable_builtin_ncm:
-            combined.pop("ncm", None)
-        for family, fields in profile.items():
-            combined.setdefault(family, {}).update(fields)
-        return MappingProxyType({name: MappingProxyType(values) for name, values in combined.items()})
+        return merge_profile(profile, include_defaults=self.enable_builtin_platforms,
+                             exclude=() if self.enable_builtin_ncm else ("ncm",))

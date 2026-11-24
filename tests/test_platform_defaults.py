@@ -150,6 +150,20 @@ class BuiltinPlatformProfileTests(ServerTestCase):
         self.assertNotIn("master_key", profile["qmc2"])
         self.assert_clean()
 
+    def test_merge_profile_layers_overrides_without_mutating_defaults(self):
+        from core.default_profiles import merge_profile
+
+        baseline = merge_profile(platforms.EMPTY_PROFILE)
+        self.assertEqual(set(baseline), {"ncm", "qmc1", "qmc2", "kwm", "kgm"})
+        replacement = b"\x01" * 16
+        merged = merge_profile({"ncm": {"tag_key": replacement}})
+        self.assertEqual(merged["ncm"]["tag_key"], replacement)
+        self.assertEqual(merged["ncm"]["core_key"], baseline["ncm"]["core_key"])
+        # A later call must start from the published constants again.
+        self.assertNotEqual(merge_profile(platforms.EMPTY_PROFILE)["ncm"]["tag_key"], replacement)
+        self.assertFalse(merge_profile(platforms.EMPTY_PROFILE, include_defaults=False))
+        self.assert_clean()
+
     def test_disabled_platform_defaults_preserve_explicit_local_overrides(self):
         disabled = ServerConfig(temp_dir=self.jobs, profile_path=None, enable_builtin_platforms=False)
         for family in ("qmc1", "qmc2", "kwm"):

@@ -10,6 +10,7 @@ from pathlib import Path
 from tkinter import filedialog, messagebox, ttk
 
 from core import convert, locate, platforms, probe, windows_drop
+from core.default_profiles import merge_profile
 
 ROOT = Path(__file__).resolve().parent
 DEFAULT_OUT = ROOT / "转换输出"
@@ -24,7 +25,7 @@ class MusicConverter(tk.Tk):
         self.geometry("1060x700")
         self.minsize(920, 620)
         self.configure(bg=BG)
-        self.profile = platforms.EMPTY_PROFILE
+        self.profile = merge_profile(platforms.EMPTY_PROFILE)
         self.rows: dict[str, tuple[Path, int]] = {}
         self.infos: dict[str, probe.AudioInfo] = {}
         self.sequence = 0
@@ -78,9 +79,9 @@ class MusicConverter(tk.Tk):
         for label, command in (("添加文件", self.add_files), ("添加文件夹", self.add_folder),
                                ("移除选中", self._remove), ("清空", lambda: self._remove(True))):
             self._button(toolbar, label, command).pack(side="left", padx=(0, 6))
-        self._button(toolbar, "清除参数", lambda: self._set_profile(platforms.EMPTY_PROFILE)).pack(side="right")
+        self._button(toolbar, "恢复默认参数", lambda: self._set_profile(platforms.EMPTY_PROFILE)).pack(side="right")
         self._button(toolbar, "加载本地参数…", self._pick_profile).pack(side="right", padx=(0, 6))
-        self.profile_text = ttk.Label(outer, text="未加载导出参数 · 普通音视频可直接转码", style="Muted.TLabel")
+        self.profile_text = ttk.Label(outer, text="已启用内置默认参数（网易云 / QQ / 酷狗 / 酷我）", style="Muted.TLabel")
         self.profile_text.pack(fill="x", pady=(0, 10))
 
         table = ttk.Frame(outer)
@@ -250,10 +251,12 @@ class MusicConverter(tk.Tk):
                 return
             self._set_profile(profile)
 
-    def _set_profile(self, profile):
-        self.profile = profile
-        self.profile_text.configure(text=(f"本次会话已加载 {len(profile)} 组参数 · 不上传、不保存"
-                                          if profile else "未加载导出参数 · 普通音视频可直接转码"))
+    def _set_profile(self, overrides):
+        """Merge a local JSON on top of the built-in defaults, never replacing them wholesale."""
+        self.profile = merge_profile(overrides)
+        self.profile_text.configure(text=(
+            f"内置默认参数 + {len(overrides)} 组本机覆盖 · 不上传、不保存" if overrides
+            else "已启用内置默认参数（网易云 / QQ / 酷狗 / 酷我）"))
         self.infos.clear()
         for key, (path, _) in list(self.rows.items()):
             self._enqueue(key, path)
