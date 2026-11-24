@@ -1,5 +1,6 @@
 # Local tools, dependencies and build products
-/bin/
+/bin/*
+!/bin/README.md
 /vendor/
 /.deps/
 /.venv/
