@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """Windows 桌面界面；诊断、扫描和转码都不阻塞主线程。"""
 from __future__ import annotations
 

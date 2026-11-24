@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """工具子进程统一处理进度、超时和停止；不经 shell 执行。"""
 from __future__ import annotations
 

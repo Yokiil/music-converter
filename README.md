@@ -6,7 +6,7 @@
 
 网易云 NCM · QQ 音乐 QMC · 酷狗 KGM · 酷我 KWM · 常见音频格式，一个网页全部搞定
 
-`Python 3.10+` · `FastAPI` · `FFmpeg` · `Windows / Web` · 纯本地运行
+`Python 3.10+` · `FastAPI` · `FFmpeg` · `Windows / Web` · `MIT` · 纯本地运行
 
 <img src="docs/screenshot.jpg" width="880" alt="声转网页界面：五个不同平台的音频文件识别后一键转换成 MP3">
 
@@ -167,6 +167,7 @@ music-converter/
 ├─ app.py               Windows 桌面版
 ├─ tests/               合成样本与回归测试
 ├─ licenses/            第三方许可证原文
+├─ LICENSE              本项目 MIT 许可
 └─ THIRD_PARTY.md       来源与许可说明
 ```
 
@@ -178,21 +179,31 @@ music-converter/
 - **这是本机版本**：默认只监听 `127.0.0.1`。若要对外提供服务，还需补 HTTPS、鉴权、限流和隔离运行环境。
 - **桌面版仅 Windows**：网页版跨平台，但桌面版的拖放与部分交互依赖 Windows API。
 
-## 第三方与许可
+## 许可
 
-本项目的平台格式读取建立在若干公开实现之上，具体来源、固定版本和许可证原文都在
-[THIRD_PARTY.md](THIRD_PARTY.md) 与 [licenses/](licenses/) 中保留：
+本项目自身代码以 **MIT** 许可发布——可以自由使用、修改、分发，包括商用，保留版权与许可声明即可。
+
+**一个例外**：`core/vendor_readers.py` 与 `core/mask_reader.py` 是从
+[MusicDecrypto](https://github.com/davidxuang/MusicDecrypto) 移植的读取器，沿用 **LGPL-2.1-or-later**。
+这两个文件是自包含模块，可以单独替换或删除；它们的上游版本、修改说明和许可证原文都在
+[THIRD_PARTY.md](THIRD_PARTY.md) 与 [licenses/](licenses/) 中。
+
+### 第三方组件
+
+平台格式的读取依赖若干公开实现，固定版本与许可证如下：
 
 | 组件 | 版本 | 许可 |
 |---|---|---|
-| [libtakiyasha](https://github.com/nukemiko/libtakiyasha) | 2.1.1.post1 | MIT |
+| [libtakiyasha](https://github.com/nukemiko/libtakiyasha)（NCM / QMC 解析） | 2.1.1.post1 | MIT |
 | [MusicDecrypto](https://github.com/davidxuang/MusicDecrypto)（酷狗 / 酷我读取器移植） | b97bedc0 | LGPL-2.1-or-later |
 | [qmc-decoder](https://github.com/presburger/qmc-decoder)（QMC v1 参数） | fb1e04b | MIT |
 | [ncmdump](https://github.com/taurusxin/ncmdump)（NCM 默认参数） | 1.5.1 | MIT |
+| [pyaes](https://github.com/ricmoo/pyaes) | 1.6.1 | MIT |
+| [Mutagen](https://mutagen.readthedocs.io/) | 1.47.0 | GPL-2.0-or-later |
 | [FFmpeg](https://ffmpeg.org/legal.html) | 按本机构建 | 视构建而定 |
 
-`core/vendor_readers.py` 与 `core/mask_reader.py` 为 LGPL-2.1-or-later 的 Python 移植，源码随仓库完整提供。
-其余项目代码保留所有权利，本仓库不对其额外授予开源许可。
+依赖通过 pip 单独安装、以独立进程或模块形式调用，未与项目代码打包成单一可执行文件。
+MIT 许可不影响这些组件各自的许可条款。
 
 ## 免责声明
 

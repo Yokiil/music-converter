@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """定位 ffmpeg / ffprobe 可执行文件。
 
 查找顺序：

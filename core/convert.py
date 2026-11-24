@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """输出原编码或转码；成功前绝不发布最终文件。"""
 from __future__ import annotations
 

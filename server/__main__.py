@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """Run the development API on loopback only."""
 from __future__ import annotations
 

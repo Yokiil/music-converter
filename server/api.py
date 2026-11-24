@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """上传 → 自动探测 → 转换 → 下载，不接受客户端密钥或路径。"""
 from __future__ import annotations
 

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """可选的本地封装读取适配器。参数由调用方提供，可来自公开格式默认值或本机配置。"""
 
 from __future__ import annotations

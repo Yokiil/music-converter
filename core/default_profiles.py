@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """Published default constants for supported local wrapper variants.
 
 These are public format constants, not user credentials or per-song keys.

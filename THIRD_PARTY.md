@@ -1,5 +1,16 @@
 # Third-party notices
 
+## Project licensing at a glance
+
+| Scope | License |
+|---|---|
+| Project code (everything except the two files below) | MIT, see [LICENSE](./LICENSE) |
+| `core/vendor_readers.py`, `core/mask_reader.py` | LGPL-2.1-or-later (ported from MusicDecrypto) |
+| Runtime dependencies installed via pip | their own licenses, listed below |
+| Retained test vectors in `tests/test_platform_defaults.py` | LGPL-3.0 (MusicDecrypto test project) |
+
+Each source file states its own scope with an `SPDX-License-Identifier` on line 1.
+
 ## NCM format defaults — taurusxin/ncmdump
 
 The NCM server defaults in `core/default_profiles.py` reference the published

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """Windows Explorer Unicode drag-and-drop for the Tk main window."""
 from __future__ import annotations
 

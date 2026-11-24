@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """识别本地文件，区分普通音频、可尝试导出的封装和不支持的版本。"""
 from __future__ import annotations
 

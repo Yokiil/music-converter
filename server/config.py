@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """Trusted server settings. Only the operator supplies a local adapter profile."""
 from __future__ import annotations
 
