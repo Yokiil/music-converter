@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" role="img" aria-labelledby="title">
+  <title id="title">声转 · Music Converter</title>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#36a1ff"/>
+      <stop offset="0.5" stop-color="#6254ef"/>
+      <stop offset="1" stop-color="#992fee"/>
+    </linearGradient>
+    <linearGradient id="shine" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff" stop-opacity="0.32"/>
+      <stop offset="1" stop-color="#fff" stop-opacity="0.02"/>
+    </linearGradient>
+  </defs>
+  <rect x="4" y="4" width="120" height="120" rx="30" fill="url(#bg)"/>
+  <rect x="4.75" y="4.75" width="118.5" height="118.5" rx="29.25" fill="none" stroke="url(#shine)" stroke-width="1.5"/>
+  <path d="M30 56v16m17-31v46m17-60v74m17-60v46m17-31v16" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round"/>
+</svg>

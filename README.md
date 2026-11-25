@@ -1,16 +1,28 @@
 <div align="center">
 
-# 声转 · 音乐转换器
+<img src="docs/logo.svg" width="104" height="104" alt="声转 Logo">
 
-**上传本地音乐，自动识别格式，换成你想要的声音。**
+# 声转 · Music Converter
 
-网易云 NCM · QQ 音乐 QMC · 酷狗 KGM · 酷我 KWM · 常见音频格式，一个网页全部搞定
+**Local Audio Conversion · Automatic Format Detection · Batch Processing**
 
-`Python 3.10+` · `FastAPI` · `FFmpeg` · `Windows / Web` · `MIT` · 纯本地运行
+面向本地音乐文件的格式转换工具，支持网页版与 Windows 桌面版
 
-**[⬇ 下载 v0.1.0](https://github.com/Yokiil/music-converter/releases/latest)** &nbsp;·&nbsp; [快速开始](#快速开始) &nbsp;·&nbsp; [支持范围](#支持范围) &nbsp;·&nbsp; [常见问题](#限制说明)
+<p>
+  <a href="https://github.com/Yokiil/music-converter/releases/latest"><img src="https://img.shields.io/github/v/release/Yokiil/music-converter?label=Release&amp;color=0ea5e9&amp;style=flat" alt="Latest release"></a>
+  <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&amp;logoColor=white&amp;style=flat" alt="Python 3.10+"></a>
+  <a href="https://fastapi.tiangolo.com/"><img src="https://img.shields.io/badge/Backend-FastAPI-009688?logo=fastapi&amp;logoColor=white&amp;style=flat" alt="FastAPI backend"></a>
+  <a href="https://ffmpeg.org/"><img src="https://img.shields.io/badge/Audio-FFmpeg-317b22?logo=ffmpeg&amp;logoColor=white&amp;style=flat" alt="FFmpeg audio engine"></a>
+  <a href="#快速开始"><img src="https://img.shields.io/badge/Platform-Web%20%2B%20Windows-7756ce?style=flat" alt="Web and Windows"></a>
+  <a href="https://github.com/Yokiil/music-converter/blob/main/LICENSE"><img src="https://img.shields.io/github/license/Yokiil/music-converter?label=License&amp;color=22a06b&amp;style=flat" alt="Project license"></a>
+</p>
 
-<img src="docs/screenshot.jpg" width="880" alt="声转网页界面：五个不同平台的音频文件识别后一键转换成 MP3">
+网易云 NCM · QQ 音乐 QMC · 酷狗 KGM · 酷我 KWM · 常见音频格式<br>
+<sub>平台格式仅支持已列明的版本，详见支持范围。</sub>
+
+**[下载最新版本](https://github.com/Yokiil/music-converter/releases/latest)** &nbsp;·&nbsp; [快速开始](#快速开始) &nbsp;·&nbsp; [支持范围](#支持范围) &nbsp;·&nbsp; [使用说明](使用说明.md)
+
+<img src="docs/screenshot.jpg" width="880" alt="声转网页界面：不同平台封装的合成音频样本完成 MP3 转换">
 
 </div>
 
